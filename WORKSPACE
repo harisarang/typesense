@@ -6,6 +6,12 @@ load("//bazel:onnxruntime_cuda_defs.bzl", "cuda_home_repository")
 cuda_home_repository(name = "cuda_home_repo")
 
 git_repository(
+       name = "bazel_clang_tidy",
+       commit = "783aa523aafb4a6798a538c61e700b6ed27975a7",
+       remote = "https://github.com/erenon/bazel_clang_tidy.git",
+)
+
+git_repository(
     name = "com_grail_bazel_compdb",
     commit = "58672f5eecd70a2d3ed50016a3abf907701404e0",
     remote = "https://github.com/grailbio/bazel-compilation-database.git",
