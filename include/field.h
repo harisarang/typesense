@@ -445,6 +445,7 @@ struct field {
                                     bool is_update, std::vector<field>& flattened_fields);
 
     static void compact_nested_fields(tsl::htrie_map<char, field>& nested_fields);
+    static Option<bool> expand_personalization_fields(nlohmann::json& fields_json);
 
     static nlohmann::json field_to_json_field(const struct field& field);
 };

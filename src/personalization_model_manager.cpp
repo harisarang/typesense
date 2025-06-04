@@ -214,14 +214,6 @@ Option<bool> PersonalizationModelManager::validate_personalization_model(const n
         return Option<bool>(400, "personalization_model_id must be a string");
     }
 
-    if (!model_config["personalization_embedding_type"].is_string()) {
-        return Option<bool>(400, "personalization_embedding_type must be a string");
-    }
-
-    if (model_config["personalization_embedding_type"] != "user" && model_config["personalization_embedding_type"] != "item") {
-        return Option<bool>(400, "Invalid personalization_embedding_type");
-    }
-
     auto get_model_op = get_model(model_config["personalization_model_id"].get<std::string>());
     if (!get_model_op.ok()) {
         return Option<bool>(400, "Invalid model id");

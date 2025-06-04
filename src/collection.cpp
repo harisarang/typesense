@@ -1981,8 +1981,7 @@ Option<bool> Collection::init_index_search_args(collection_search_args_t& coll_a
     const std::string& personalization_user_id = coll_args.personalization_user_id;
     const std::string& personalization_model_id = coll_args.personalization_model_id;
     const std::string& personalization_type = coll_args.personalization_type;
-    const std::string& personalization_user_field = coll_args.personalization_user_field;
-    const std::string& personalization_item_field = coll_args.personalization_item_field;
+    const std::string& personalization_field = coll_args.personalization_field;
     const std::string& personalization_event_name = coll_args.personalization_event_name;
     const size_t& personalization_n_events = coll_args.personalization_n_events;
 
@@ -2037,7 +2036,7 @@ Option<bool> Collection::init_index_search_args(collection_search_args_t& coll_a
     }
 
     if(!personalization_user_id.empty() || !personalization_model_id.empty() || !personalization_type.empty() ||
-       !personalization_user_field.empty() || !personalization_item_field.empty() || personalization_n_events > 0) {
+       !personalization_field.empty() || personalization_n_events > 0) {
         bool is_wildcard_query = (raw_query == "*" || raw_query.empty());
 
         if(!vector_query_str.empty()) {
@@ -2045,7 +2044,7 @@ Option<bool> Collection::init_index_search_args(collection_search_args_t& coll_a
         }
 
         auto personalization_op = parse_and_validate_personalization_query(personalization_user_id, personalization_model_id, personalization_type,
-                                                                           personalization_user_field, personalization_item_field, personalization_n_events,
+                                                                           personalization_field, personalization_n_events,
                                                                            personalization_event_name, vector_query, filter_query, is_wildcard_query);
         if(!personalization_op.ok()) {
             return personalization_op;
@@ -2671,8 +2670,7 @@ Option<nlohmann::json> Collection::search(std::string query, const std::vector<s
                                           std::string personalization_user_id,
                                           std::string personalization_model_id,
                                           std::string personalization_type,
-                                          std::string personalization_user_field,
-                                          std::string personalization_item_field,
+                                          std::string personalization_field,
                                           std::string personalization_event_name,
                                           size_t personalization_n_events) const {
     std::shared_lock lock(mutex);
@@ -2705,7 +2703,7 @@ Option<nlohmann::json> Collection::search(std::string query, const std::vector<s
                                          enable_typos_for_alpha_numerical_tokens, max_filter_by_candidates,
                                          rerank_hybrid_matches, enable_analytics, validate_field_names, analytics_tags,
                                          personalization_user_id, personalization_model_id, personalization_type,
-                                         personalization_user_field, personalization_item_field, personalization_event_name,
+                                         personalization_field, personalization_event_name,
                                          personalization_n_events);
     return search(args);
 }
@@ -2772,8 +2770,7 @@ Option<nlohmann::json> Collection::search(collection_search_args_t& coll_args) c
     const auto& personalization_user_id = coll_args.personalization_user_id;
     const auto& personalization_model_id = coll_args.personalization_model_id;
     const auto& personalization_type = coll_args.personalization_type;
-    const auto& personalization_user_field = coll_args.personalization_user_field;
-    const auto& personalization_item_field = coll_args.personalization_item_field;
+    const auto& personalization_field = coll_args.personalization_field;
     const auto& personalization_n_events = coll_args.personalization_n_events;
 
     auto& conversation_id = coll_args.conversation_id;
@@ -7631,8 +7628,7 @@ Option<bool> Collection::parse_and_validate_vector_query(const std::string& vect
 Option<bool> Collection::parse_and_validate_personalization_query(const std::string& personalization_user_id,
                                                                   const std::string& personalization_model_id,
                                                                   const std::string& personalization_type,
-                                                                  const std::string& personalization_user_field,
-                                                                  const std::string& personalization_item_field,
+                                                                  const std::string& personalization_field,
                                                                   const size_t& personalization_n_events,
                                                                   const std::string& personalization_event_name,
                                                                   vector_query_t& vector_query,
@@ -7650,12 +7646,8 @@ Option<bool> Collection::parse_and_validate_personalization_query(const std::str
         return Option<bool>(400, "Personalization type is required when recommendation is done.");
     }
 
-    if(personalization_user_field.empty()) {
-        return Option<bool>(400, "Personalization user field is required when recommendation is done.");
-    }
-
-    if(personalization_item_field.empty()) {
-        return Option<bool>(400, "Personalization item field is required when recommendation is done.");
+    if(personalization_field.empty()) {
+        return Option<bool>(400, "Personalization field is required when recommendation is done.");
     }
 
     if(personalization_n_events == 0) {
@@ -7692,6 +7684,9 @@ Option<bool> Collection::parse_and_validate_personalization_query(const std::str
         return Option<bool>(400, "No events found for the user.");
     }
 
+    const std::string user_personalization_field = personalization_field + "_user";
+    const std::string item_personalization_field = personalization_field + "_item";
+
     std::vector<std::string> doc_ids;
     for (const auto& event : user_events) {
         nlohmann::json event_json;
@@ -7722,12 +7717,12 @@ Option<bool> Collection::parse_and_validate_personalization_query(const std::str
             return Option<bool>(400, "Document id referenced in event is not found.");
         }
 
-        if(!document.contains(personalization_user_field) || !document[personalization_user_field].is_array()) {
+        if(!document.contains(user_personalization_field) || !document[user_personalization_field].is_array()) {
             return Option<bool>(400, "Document referenced in event does not contain a valid "
                                     "vector field.");
         }
 
-        for(auto& fvalue: document[personalization_user_field]) {
+        for(auto& fvalue: document[user_personalization_field]) {
             if(!fvalue.is_number()) {
                 return Option<bool>(400, "Document referenced in event does not contain a valid "
                                         "vector field.");
@@ -7759,7 +7754,7 @@ Option<bool> Collection::parse_and_validate_personalization_query(const std::str
     auto mean_embedding = embedding_op.embedding;
 
     vector_query.values = mean_embedding;
-    vector_query.field_name = personalization_item_field;
+    vector_query.field_name = item_personalization_field;
     if (filter_query.empty()) {
         filter_query = "id:!=[";
     } else {
@@ -7771,7 +7766,7 @@ Option<bool> Collection::parse_and_validate_personalization_query(const std::str
             filter_query += ",";
         }
     }
-    filter_query += "]";                                      
+    filter_query += "]";
     return Option<bool>(true);
 }
 
@@ -7998,8 +7993,7 @@ Option<bool> collection_search_args_t::init(std::map<std::string, std::string>& 
     std::string personalization_user_id;
     std::string personalization_model_id;
     std::string personalization_type;
-    std::string personalization_user_field;
-    std::string personalization_item_field;
+    std::string personalization_field;
     std::string personalization_event_name;
     size_t personalization_n_events = 0;
 
@@ -8051,8 +8045,7 @@ Option<bool> collection_search_args_t::init(std::map<std::string, std::string>& 
             {PERSONALIZATION_USER_ID, &personalization_user_id},
             {PERSONALIZATION_MODEL_ID, &personalization_model_id},
             {PERSONALIZATION_TYPE, &personalization_type},
-            {PERSONALIZATION_USER_FIELD, &personalization_user_field},
-            {PERSONALIZATION_ITEM_FIELD, &personalization_item_field},
+            {PERSONALIZATION_FIELD, &personalization_field},
             {PERSONALIZATION_EVENT_NAME, &personalization_event_name}
     };
 
@@ -8259,7 +8252,7 @@ Option<bool> collection_search_args_t::init(std::map<std::string, std::string>& 
                                     enable_typos_for_alpha_numerical_tokens, max_filter_by_candidates,
                                     rerank_hybrid_matches, enable_analytics, validate_field_names, analytics_tags,
                                     personalization_user_id, personalization_model_id, personalization_type,
-                                    personalization_user_field, personalization_item_field, personalization_event_name, personalization_n_events);
+                                    personalization_field, personalization_event_name, personalization_n_events);
     return Option<bool>(true);
 }
 

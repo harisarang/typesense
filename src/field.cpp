@@ -743,7 +743,11 @@ Option<bool> field::json_fields_to_fields(bool enable_nested_fields, nlohmann::j
                                           std::vector<field>& the_fields) {
     size_t num_auto_detect_fields = 0;
     const tsl::htrie_map<char, field> dummy_search_schema;
-
+    
+    auto expand_op = expand_personalization_fields(fields_json);
+    if(!expand_op.ok()) {
+        return expand_op;
+    }
     for(size_t i = 0; i < fields_json.size(); i++) {
         nlohmann::json& field_json = fields_json[i];
         if(field_json["name"] == "id") {
@@ -771,6 +775,52 @@ Option<bool> field::json_fields_to_fields(bool enable_nested_fields, nlohmann::j
     }
 
     return Option<bool>(true);
+}
+
+Option<bool> field::expand_personalization_fields(nlohmann::json& fields_json) {
+  std::vector<size_t> to_be_removed;
+  for (size_t i = 0; i < fields_json.size(); i++) {
+    nlohmann::json& field_json = fields_json[i];
+    if (!field_json.contains(fields::embed)) {
+      continue;
+    }
+    const auto& model_config = field_json[fields::embed][fields::model_config];
+    size_t num_dim = 0;
+    if (model_config.contains(fields::personalization_type)) {
+      if (model_config[fields::personalization_type] == "recommendation") {
+          auto res = PersonalizationModelManager::validate_personalization_model(model_config, num_dim);
+          field_json[fields::num_dim] = num_dim;
+          if(!res.ok()) {
+              return Option<bool>(res.code(), res.error());
+          }
+      } else {
+          return Option<bool>(400, "Invalid personalization type.");
+      }
+      if (!model_config.contains("personalization_embedding_type")) {
+        nlohmann::json user_model_config = model_config, item_model_config = model_config, current_field_json = field_json;
+        std::string field_name = field_json[fields::name].get<std::string>();
+
+        user_model_config["personalization_embedding_type"] = "user";
+        current_field_json[fields::embed][fields::model_config] = user_model_config;
+        current_field_json[fields::name] = field_name + "_user";
+        fields_json.push_back(current_field_json);
+        std::string user_field_embedding = current_field_json.dump();
+
+        item_model_config["personalization_embedding_type"] = "item";
+        current_field_json[fields::embed][fields::model_config] = item_model_config;
+        current_field_json[fields::name] = field_name + "_item";
+        fields_json.push_back(current_field_json);
+        std::string item_field_embedding = current_field_json.dump();
+        
+        to_be_removed.push_back(i);
+      }
+    }
+  }
+  
+  for (auto& idx : to_be_removed) {
+    fields_json.erase(idx);
+  }
+  return Option<bool>(true);
 }
 
 Option<bool> field::validate_and_init_embed_field(const tsl::htrie_map<char, field>& search_schema, nlohmann::json& field_json,
@@ -819,16 +869,7 @@ Option<bool> field::validate_and_init_embed_field(const tsl::htrie_map<char, fie
 
     const auto& model_config = field_json[fields::embed][fields::model_config];
     size_t num_dim = field_json[fields::num_dim].get<size_t>();
-    if (model_config.contains(fields::personalization_type)) {
-        if (model_config[fields::personalization_type] == "recommendation") {
-            auto res = PersonalizationModelManager::validate_personalization_model(model_config, num_dim);
-            if(!res.ok()) {
-                return Option<bool>(res.code(), res.error());
-            }
-        } else {
-            return Option<bool>(400, "Invalid personalization type.");
-        }
-    } else {
+    if (!model_config.contains(fields::personalization_type)) {
         auto res = EmbedderManager::get_instance().validate_and_init_model(model_config, num_dim);
         if(!res.ok()) {
             return Option<bool>(res.code(), res.error());

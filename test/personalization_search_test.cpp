@@ -159,8 +159,7 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
     std::string personalization_user_id = "user123";
     std::string personalization_model_id = "test_model";
     std::string personalization_type = "recommendation";
-    std::string personalization_user_field = "user_embedding";
-    std::string personalization_item_field = "item_embedding";
+    std::string personalization_field = "embedding";
     size_t personalization_n_events = 10;
     std::string personalization_event_name = "test_event";
 
@@ -168,8 +167,7 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
         personalization_user_id,
         personalization_model_id,
         personalization_type,
-        personalization_user_field,
-        personalization_item_field,
+        personalization_field,
         personalization_n_events,
         personalization_event_name,
         vector_query,
@@ -179,15 +177,14 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
     ASSERT_EQ(result.error(), "");
     ASSERT_TRUE(result.ok());
     ASSERT_EQ(vector_query.values.size(), 256);
-    ASSERT_EQ(vector_query.field_name, personalization_item_field);
+    ASSERT_EQ(vector_query.field_name, personalization_field);
     ASSERT_EQ(filter_query, "id:!=[1,0]");
 
     result = collection->parse_and_validate_personalization_query(
         "123",
         personalization_model_id,
         personalization_type,
-        personalization_user_field,
-        personalization_item_field,
+        personalization_field,
         personalization_n_events,
         personalization_event_name,
         vector_query,
@@ -201,8 +198,7 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
         personalization_user_id,
         personalization_model_id,
         personalization_type,
-        personalization_user_field,
-        personalization_item_field,
+        personalization_field,
         personalization_n_events,
         "event_doesnt_exist",
         vector_query,
@@ -217,7 +213,6 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
         personalization_model_id,
         personalization_type,
         "does_not_exist",
-        personalization_item_field,
         personalization_n_events,
         personalization_event_name,
         vector_query,
@@ -226,6 +221,4 @@ TEST_F(PersonalizationSearchTest, ParseAndValidatePersonalizationQuery) {
     );
     ASSERT_EQ(result.error(), "Document referenced in event does not contain a valid vector field.");
     ASSERT_FALSE(result.ok());
-
-
 }

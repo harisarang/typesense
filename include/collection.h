@@ -173,8 +173,7 @@ struct collection_search_args_t {
     static constexpr auto PERSONALIZATION_USER_ID = "personalization_user_id";
     static constexpr auto PERSONALIZATION_MODEL_ID = "personalization_model_id";
     static constexpr auto PERSONALIZATION_TYPE = "personalization_type";
-    static constexpr auto PERSONALIZATION_USER_FIELD = "personalization_user_field";
-    static constexpr auto PERSONALIZATION_ITEM_FIELD = "personalization_item_field";
+    static constexpr auto PERSONALIZATION_FIELD = "personalization_field";
     static constexpr auto PERSONALIZATION_EVENT_NAME = "personalization_event_name";
     static constexpr auto PERSONALIZATION_N_EVENTS = "personalization_n_events";
 
@@ -256,8 +255,7 @@ struct collection_search_args_t {
     std::string personalization_user_id;
     std::string personalization_model_id;
     std::string personalization_type;
-    std::string personalization_user_field;
-    std::string personalization_item_field;
+    std::string personalization_field;
     std::string personalization_event_name;
     size_t personalization_n_events;
 
@@ -292,8 +290,8 @@ struct collection_search_args_t {
                              bool rerank_hybrid_matches, bool enable_analytics, bool validate_field_names,
                              std::string analytics_tag,
                              std::string personalization_user_id, std::string personalization_model_id,
-                             std::string personalization_type, std::string personalization_user_field,
-                             std::string personalization_item_field, std::string personalization_event_name, size_t personalization_n_events) :
+                             std::string personalization_type, std::string personalization_field,
+                             std::string personalization_event_name, size_t personalization_n_events) :
             raw_query(std::move(raw_query)), search_fields(std::move(search_fields)), filter_query(std::move(filter_query)),
             facet_fields(std::move(facet_fields)), sort_fields(std::move(sort_fields)),
             num_typos(std::move(num_typos)), per_page(per_page), page(page), token_order(token_order),
@@ -323,8 +321,8 @@ struct collection_search_args_t {
             rerank_hybrid_matches(rerank_hybrid_matches), enable_analytics(enable_analytics), validate_field_names(validate_field_names),
             analytics_tag(analytics_tag),
             personalization_user_id(personalization_user_id), personalization_model_id(personalization_model_id),
-            personalization_type(personalization_type), personalization_user_field(personalization_user_field),
-            personalization_item_field(personalization_item_field), personalization_event_name(personalization_event_name), personalization_n_events(personalization_n_events) {}
+            personalization_type(personalization_type), personalization_field(personalization_field),
+            personalization_event_name(personalization_event_name), personalization_n_events(personalization_n_events) {}
 
     collection_search_args_t() = default;
 
@@ -943,16 +941,14 @@ public:
                                   std::string personalization_user_id = "",
                                   std::string personalization_model_id = "",
                                   std::string personalization_type = "",
-                                  std::string personalization_user_field = "",
-                                  std::string personalization_item_field = "",
+                                  std::string personalization_field = "",
                                   std::string personalization_event_name = "",
                                   size_t personalization_n_events = 0) const;
 
     Option<bool> parse_and_validate_personalization_query(const std::string& personalization_user_id,
                                                           const std::string& personalization_model_id,
                                                           const std::string& personalization_type,
-                                                          const std::string& personalization_user_field,
-                                                          const std::string& personalization_item_field,
+                                                          const std::string& personalization_field,
                                                           const size_t& personalization_n_events,
                                                           const std::string& personalization_event_name,
                                                           vector_query_t& vector_query,
