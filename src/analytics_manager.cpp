@@ -731,6 +731,41 @@ bool AnalyticsManager::write_to_db(const nlohmann::json& payload) {
     return true;
 }
 
+Option<nlohmann::json> AnalyticsManager::get_status() {
+    std::shared_lock lk(mutex);
+    nlohmann::json status;
+
+    status["popular_user_collection_prefix_queries"] = query_analytics.get_popular_prefix_queries_size();
+    status["nohits_user_collection_prefix_queries"] = query_analytics.get_nohits_prefix_queries_size();
+    status["log_user_collection_prefix_queries"] = query_analytics.get_log_prefix_queries_size();
+
+    size_t q_log = 0;
+    for (const auto& kv : query_analytics.get_query_log_events()) {
+        q_log += kv.second.size();
+    }
+    status["query_log_events"] = q_log;
+
+    size_t q_counter = 0;
+    for (const auto& kv : query_analytics.get_query_counter_events()) {
+        q_counter += kv.second.query_counts.size();
+    }
+    status["query_counter_events"] = q_counter;
+
+    size_t d_log = 0;
+    for (const auto& kv : doc_analytics.get_doc_log_events()) {
+        d_log += kv.second.size();
+    }
+    status["doc_log_events"] = d_log;
+
+    size_t d_counter = 0;
+    for (const auto& kv : doc_analytics.get_doc_counter_events()) {
+        d_counter += kv.second.docid_counts.size();
+    }
+    status["doc_counter_events"] = d_counter;
+
+    return Option<nlohmann::json>(status);
+}
+
 void AnalyticsManager::run(ReplicationState* raft_server) {
     uint64_t prev_persistence_s = std::chrono::duration_cast<std::chrono::seconds>(
                                     std::chrono::system_clock::now().time_since_epoch()).count();

@@ -78,6 +78,7 @@ public:
     void run(ReplicationState* raft_server);
     void init(Store* store, Store* analytics_store, uint32_t analytics_minute_rate_limit);
     Option<nlohmann::json> process_create_rule_request(nlohmann::json& payload, bool is_live_req);
+    Option<nlohmann::json> get_status();
     void stop();
     void dispose();
 };

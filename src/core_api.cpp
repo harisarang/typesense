@@ -3908,3 +3908,23 @@ bool get_analytics_events(const std::shared_ptr<http_req>& req, const std::share
     res->set_200(get_events_op.get().dump());
     return true;
 }
+
+bool post_analytics_flush(const std::shared_ptr<http_req>& req, const std::shared_ptr<http_res>& res) {
+    auto raft_server = server->get_replication_state();
+    uint64_t now_ts_seconds = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    AnalyticsManager::get_instance().persist_analytics_db_events(raft_server, now_ts_seconds);
+    AnalyticsManager::get_instance().persist_db_events(raft_server, now_ts_seconds);
+    res->set_200(R"({"ok": true})");
+    return true;
+}
+
+bool get_analytics_status(const std::shared_ptr<http_req>& req, const std::shared_ptr<http_res>& res) {
+    auto status_op = AnalyticsManager::get_instance().get_status();
+    if(!status_op.ok()) {
+        res->set(status_op.code(), status_op.error());
+        return false;
+    }
+    res->set_200(status_op.get().dump());
+    return true;
+}

@@ -477,6 +477,42 @@ query_rule_config_t QueryAnalytics::get_query_rule(const std::string& name) {
   return query_rules.find(name)->second;
 }
 
+size_t QueryAnalytics::get_popular_prefix_queries_size() {
+  std::shared_lock lock(mutex);
+  std::shared_lock user_lock(user_compaction_mutex);
+  size_t count = 0;
+  for (const auto& user_map : popular_user_collection_prefix_queries) {
+    for (const auto& coll_vec : user_map.second) {
+      count += coll_vec.second.size();
+    }
+  }
+  return count;
+}
+
+size_t QueryAnalytics::get_nohits_prefix_queries_size() {
+  std::shared_lock lock(mutex);
+  std::shared_lock user_lock(user_compaction_mutex);
+  size_t count = 0;
+  for (const auto& user_map : nohits_user_collection_prefix_queries) {
+    for (const auto& coll_vec : user_map.second) {
+      count += coll_vec.second.size();
+    }
+  }
+  return count;
+}
+
+size_t QueryAnalytics::get_log_prefix_queries_size() {
+  std::shared_lock lock(mutex);
+  std::shared_lock user_lock(user_compaction_mutex);
+  size_t count = 0;
+  for (const auto& user_map : log_user_collection_prefix_queries) {
+    for (const auto& coll_vec : user_map.second) {
+      count += coll_vec.second.size();
+    }
+  }
+  return count;
+}
+
 void QueryAnalytics::remove_all_rules() {
   std::unique_lock lock(mutex);
   query_rules.clear();
